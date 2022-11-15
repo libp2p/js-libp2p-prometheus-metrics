@@ -1,12 +1,12 @@
 import type { CounterGroup, CalculatedMetricOptions, CalculateMetric } from '@libp2p/interface-metrics'
-import { Counter as PromCounter, CollectFunction } from 'prom-client'
+import { Counter as PromCounter, CollectFunction, Registry } from 'prom-client'
 import { normaliseString } from './utils.js'
 
 export class PrometheusCounterGroup implements CounterGroup {
   private readonly counter: PromCounter
   private readonly label: string
 
-  constructor (name: string, opts: CalculatedMetricOptions<Record<string, number>>) {
+  constructor (name: string, opts: CalculatedMetricOptions<Record<string, number>>, registry?: Registry) {
     name = normaliseString(name)
     const help = normaliseString(opts.help ?? name)
     const label = this.label = normaliseString(opts.label ?? name)
@@ -29,6 +29,7 @@ export class PrometheusCounterGroup implements CounterGroup {
       name,
       help,
       labelNames: [this.label],
+      registers: registry !== undefined ? [registry] : undefined,
       collect
     })
   }

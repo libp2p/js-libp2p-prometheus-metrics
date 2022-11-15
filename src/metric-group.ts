@@ -1,12 +1,12 @@
 import type { CalculatedMetricOptions, CalculateMetric, MetricGroup, StopTimer } from '@libp2p/interface-metrics'
-import { CollectFunction, Gauge } from 'prom-client'
+import { CollectFunction, Gauge, Registry } from 'prom-client'
 import { normaliseString } from './utils.js'
 
 export class PrometheusMetricGroup implements MetricGroup {
   private readonly gauge: Gauge
   private readonly label: string
 
-  constructor (name: string, opts: CalculatedMetricOptions<Record<string, number>>) {
+  constructor (name: string, opts: CalculatedMetricOptions<Record<string, number>>, registry?: Registry) {
     name = normaliseString(name)
     const help = normaliseString(opts.help ?? name)
     const label = this.label = normaliseString(opts.label ?? name)
@@ -29,6 +29,7 @@ export class PrometheusMetricGroup implements MetricGroup {
       name,
       help,
       labelNames: [this.label],
+      registers: registry !== undefined ? [registry] : undefined,
       collect
     })
   }

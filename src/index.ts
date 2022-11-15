@@ -1,5 +1,5 @@
 import type { CalculatedMetricOptions, Counter, CounterGroup, Metric, MetricGroup, MetricOptions, Metrics } from '@libp2p/interface-metrics'
-import { collectDefaultMetrics, DefaultMetricsCollectorConfiguration, register } from 'prom-client'
+import { collectDefaultMetrics, DefaultMetricsCollectorConfiguration, register, Registry } from 'prom-client'
 import type { MultiaddrConnection, Stream, Connection } from '@libp2p/interface-connection'
 import type { Duplex } from 'it-stream-types'
 import each from 'it-foreach'
@@ -12,6 +12,12 @@ import { logger } from '@libp2p/logger'
 const log = logger('libp2p:prometheus-metrics')
 
 export interface PrometheusMetricsInit {
+  /**
+   * Use a custom registry to register metrics.
+   * By default, the global registry is used to register metrics.
+   */
+  registry?: Registry
+
   /**
    * By default we collect default metrics - CPU, memory etc, to not do
    * this, pass true here
@@ -33,16 +39,19 @@ export interface PrometheusMetricsInit {
 
 class PrometheusMetrics implements Metrics {
   private transferStats: Map<string, number>
+  private readonly registry?: Registry
 
   constructor (init?: Partial<PrometheusMetricsInit>) {
+    this.registry = init?.registry
+
     if (init?.preserveExistingMetrics !== true) {
       log('Clearing existing metrics')
-      register.clear()
+      ;(this.registry ?? register).clear()
     }
 
     if (init?.preserveExistingMetrics !== false) {
       log('Collecting default metrics')
-      collectDefaultMetrics(init?.defaultMetrics)
+      collectDefaultMetrics({ ...init?.defaultMetrics, register: this.registry ?? init?.defaultMetrics?.register })
     }
 
     // holds global and per-protocol sent/received stats
@@ -128,7 +137,7 @@ class PrometheusMetrics implements Metrics {
     }
 
     log('Register metric', name)
-    const metric = new PrometheusMetric(name, opts ?? {})
+    const metric = new PrometheusMetric(name, opts ?? {}, this.registry)
 
     if (opts.calculate == null) {
       return metric
@@ -143,7 +152,7 @@ class PrometheusMetrics implements Metrics {
     }
 
     log('Register metric group', name)
-    const group = new PrometheusMetricGroup(name, opts ?? {})
+    const group = new PrometheusMetricGroup(name, opts ?? {}, this.registry)
 
     if (opts.calculate == null) {
       return group
@@ -158,7 +167,7 @@ class PrometheusMetrics implements Metrics {
     }
 
     log('Register counter', name)
-    const counter = new PrometheusCounter(name, opts)
+    const counter = new PrometheusCounter(name, opts, this.registry)
 
     if (opts.calculate == null) {
       return counter
@@ -173,7 +182,7 @@ class PrometheusMetrics implements Metrics {
     }
 
     log('Register counter group', name)
-    const group = new PrometheusCounterGroup(name, opts)
+    const group = new PrometheusCounterGroup(name, opts, this.registry)
 
     if (opts.calculate == null) {
       return group
