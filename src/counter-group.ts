@@ -1,27 +1,32 @@
 import type { CounterGroup, CalculatedMetricOptions, CalculateMetric } from '@libp2p/interface-metrics'
 import { Counter as PromCounter, CollectFunction } from 'prom-client'
-import { normaliseString } from './utils.js'
+import { normaliseString, CalculatedMetric } from './utils.js'
 
-export class PrometheusCounterGroup implements CounterGroup {
+export class PrometheusCounterGroup implements CounterGroup, CalculatedMetric<Record<string, number>> {
   private readonly counter: PromCounter
   private readonly label: string
+  private readonly calculators: Array<CalculateMetric<Record<string, number>>>
 
   constructor (name: string, opts: CalculatedMetricOptions<Record<string, number>>) {
     name = normaliseString(name)
     const help = normaliseString(opts.help ?? name)
     const label = this.label = normaliseString(opts.label ?? name)
     let collect: CollectFunction<PromCounter<any>> | undefined
+    this.calculators = []
 
     // calculated metric
     if (opts?.calculate != null) {
-      const calculate: CalculateMetric<Record<string, number>> = opts.calculate
+      this.calculators.push(opts.calculate)
+      const self = this
 
       collect = async function () {
-        const values = await calculate()
+        await Promise.all(self.calculators.map(async calculate => {
+          const values = await calculate()
 
-        Object.entries(values).forEach(([key, value]) => {
-          this.inc({ [label]: key }, value)
-        })
+          Object.entries(values).forEach(([key, value]) => {
+            this.inc({ [label]: key }, value)
+          })
+        }))
       }
     }
 
@@ -31,6 +36,10 @@ export class PrometheusCounterGroup implements CounterGroup {
       labelNames: [this.label],
       collect
     })
+  }
+
+  addCalculator (calculator: CalculateMetric<Record<string, number>>) {
+    this.calculators.push(calculator)
   }
 
   increment (values: Record<string, number | unknown>): void {

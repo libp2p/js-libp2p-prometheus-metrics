@@ -1,27 +1,32 @@
 import type { CalculatedMetricOptions, CalculateMetric, MetricGroup, StopTimer } from '@libp2p/interface-metrics'
 import { CollectFunction, Gauge } from 'prom-client'
-import { normaliseString } from './utils.js'
+import { CalculatedMetric, normaliseString } from './utils.js'
 
-export class PrometheusMetricGroup implements MetricGroup {
+export class PrometheusMetricGroup implements MetricGroup, CalculatedMetric<Record<string, number>> {
   private readonly gauge: Gauge
   private readonly label: string
+  private readonly calculators: Array<CalculateMetric<Record<string, number>>>
 
   constructor (name: string, opts: CalculatedMetricOptions<Record<string, number>>) {
     name = normaliseString(name)
     const help = normaliseString(opts.help ?? name)
     const label = this.label = normaliseString(opts.label ?? name)
     let collect: CollectFunction<Gauge<any>> | undefined
+    this.calculators = []
 
     // calculated metric
     if (opts?.calculate != null) {
-      const calculate: CalculateMetric<Record<string, number>> = opts.calculate
+      this.calculators.push(opts.calculate)
+      const self = this
 
       collect = async function () {
-        const values = await calculate()
+        await Promise.all(self.calculators.map(async calculate => {
+          const values = await calculate()
 
-        Object.entries(values).forEach(([key, value]) => {
-          this.set({ [label]: key }, value)
-        })
+          Object.entries(values).forEach(([key, value]) => {
+            this.set({ [label]: key }, value)
+          })
+        }))
       }
     }
 
@@ -31,6 +36,10 @@ export class PrometheusMetricGroup implements MetricGroup {
       labelNames: [this.label],
       collect
     })
+  }
+
+  addCalculator (calculator: CalculateMetric<Record<string, number>>) {
+    this.calculators.push(calculator)
   }
 
   update (values: Record<string, number>): void {
