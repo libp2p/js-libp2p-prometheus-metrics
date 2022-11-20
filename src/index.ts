@@ -37,6 +37,10 @@ export interface PrometheusMetricsInit {
   preserveExistingMetrics?: boolean
 }
 
+export interface PrometheusCalculatedMetricOptions<T=number> extends CalculatedMetricOptions<T> {
+  registry?: Registry
+}
+
 class PrometheusMetrics implements Metrics {
   private transferStats: Map<string, number>
   private readonly registry?: Registry
@@ -129,7 +133,7 @@ class PrometheusMetrics implements Metrics {
     this._track(stream, stream.stat.protocol)
   }
 
-  registerMetric (name: string, opts: CalculatedMetricOptions): void
+  registerMetric (name: string, opts: PrometheusCalculatedMetricOptions): void
   registerMetric (name: string, opts?: MetricOptions): Metric
   registerMetric (name: string, opts: any = {}): any {
     if (name == null ?? name.trim() === '') {
@@ -137,14 +141,14 @@ class PrometheusMetrics implements Metrics {
     }
 
     log('Register metric', name)
-    const metric = new PrometheusMetric(name, opts ?? {}, this.registry)
+    const metric = new PrometheusMetric(name, { registry: this.registry, ...opts })
 
     if (opts.calculate == null) {
       return metric
     }
   }
 
-  registerMetricGroup (name: string, opts: CalculatedMetricOptions<Record<string, number>>): void
+  registerMetricGroup (name: string, opts: PrometheusCalculatedMetricOptions<Record<string, number>>): void
   registerMetricGroup (name: string, opts?: MetricOptions): MetricGroup
   registerMetricGroup (name: string, opts: any = {}): any {
     if (name == null ?? name.trim() === '') {
@@ -152,14 +156,14 @@ class PrometheusMetrics implements Metrics {
     }
 
     log('Register metric group', name)
-    const group = new PrometheusMetricGroup(name, opts ?? {}, this.registry)
+    const group = new PrometheusMetricGroup(name, { registry: this.registry, ...opts })
 
     if (opts.calculate == null) {
       return group
     }
   }
 
-  registerCounter (name: string, opts: CalculatedMetricOptions): void
+  registerCounter (name: string, opts: PrometheusCalculatedMetricOptions): void
   registerCounter (name: string, opts?: MetricOptions): Counter
   registerCounter (name: string, opts: any = {}): any {
     if (name == null ?? name.trim() === '') {
@@ -167,14 +171,14 @@ class PrometheusMetrics implements Metrics {
     }
 
     log('Register counter', name)
-    const counter = new PrometheusCounter(name, opts, this.registry)
+    const counter = new PrometheusCounter(name, { registry: this.registry, ...opts })
 
     if (opts.calculate == null) {
       return counter
     }
   }
 
-  registerCounterGroup (name: string, opts: CalculatedMetricOptions<Record<string, number>>): void
+  registerCounterGroup (name: string, opts: PrometheusCalculatedMetricOptions<Record<string, number>>): void
   registerCounterGroup (name: string, opts?: MetricOptions): CounterGroup
   registerCounterGroup (name: string, opts: any = {}): any {
     if (name == null ?? name.trim() === '') {
@@ -182,7 +186,7 @@ class PrometheusMetrics implements Metrics {
     }
 
     log('Register counter group', name)
-    const group = new PrometheusCounterGroup(name, opts, this.registry)
+    const group = new PrometheusCounterGroup(name, { registry: this.registry, ...opts })
 
     if (opts.calculate == null) {
       return group
