@@ -141,7 +141,7 @@
   },
   "devDependencies": {
     "@libp2p/interface-mocks": "^8.0.4",
-    "@libp2p/peer-id-factory": "^1.0.19",
+    "@libp2p/peer-id-factory": "^2.0.0",
     "@multiformats/multiaddr": "^11.0.7",
     "aegir": "^37.5.6",
     "it-drain": "^2.0.0",
