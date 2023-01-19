@@ -140,7 +140,7 @@
     "it-stream-types": "^1.0.4"
   },
   "devDependencies": {
-    "@libp2p/interface-mocks": "^8.0.4",
+    "@libp2p/interface-mocks": "^9.1.1",
     "@libp2p/peer-id-factory": "^1.0.19",
     "@multiformats/multiaddr": "^11.0.7",
     "aegir": "^37.5.6",
