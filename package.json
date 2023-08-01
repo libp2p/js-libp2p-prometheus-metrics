@@ -144,7 +144,7 @@
     "@libp2p/interface-mocks": "^12.0.1",
     "@libp2p/peer-id-factory": "^2.0.3",
     "@multiformats/multiaddr": "^12.1.3",
-    "aegir": "^39.0.6",
+    "aegir": "^40.0.8",
     "it-drain": "^3.0.2",
     "it-pipe": "^3.0.1",
     "p-defer": "^4.0.0"
